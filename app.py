@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -34,11 +35,40 @@ FIELD_LABELS_UA = {
     "linkedin": "LinkedIn",
     "company_size": "Розмір компанії",
     "job_title": "Назва вакансії",
+    "icp_match": "ICP Match",
+    "target_sheet": "Вкладка Google Sheets",
+    "short_reason_ua": "Коротка причина",
 }
 
+def load_icp():
+    icp_path = Path("config/icps/default.json")
 
-def extract_company_data(raw_text: str) -> dict:
+    with open(icp_path, "r", encoding="utf-8") as file:
+        return json.load(file)
+    
+
+def extract_company_data(raw_text: str, icp: dict) -> dict:
     prompt = f"""
+    ICP Configuration:
+
+{json.dumps(icp, indent=2)}
+
+Analyze the company according to this ICP.
+Your task is not only to extract information.
+
+Use the ICP configuration to understand:
+- what company types are considered a fit;
+- what technologies matter;
+- what countries are allowed;
+- what company sizes are preferred;
+- who the target decision makers are;
+- what pain points are relevant.
+
+Use this knowledge when extracting data.
+Do not invent information.
+Only extract facts supported by the provided text.
+Explain the verdict in natural Ukrainian, using only facts present in the vacancy or directly implied by the ICP.
+Never invent information that is not supported by the provided text.
 You are a data extraction assistant.
 
 Extract the following fields from the provided job/company text:
@@ -48,6 +78,9 @@ Extract the following fields from the provided job/company text:
 3. linkedin
 4. company_size
 5. job_title
+6. icp_match
+7. target_sheet
+8. short_reason_ua
 
 Rules:
 - Return ONLY valid JSON.
@@ -60,6 +93,19 @@ Rules:
 - Do not say "can be found by searching".
 - The JSON keys must be exactly:
   company_name, website, linkedin, company_size, job_title
+  For icp_match, return only one of:
+- "Yes"
+- "No"
+- "Unknown"
+
+For target_sheet, return only one of:
+- "Good Fit"
+- "Not Fit"
+
+If icp_match is "Yes", target_sheet must be "Good Fit".
+If icp_match is "No" or "Unknown", target_sheet must be "Not Fit".
+
+For short_reason_ua, write one short sentence in Ukrainian explaining the verdict.
 
 Text:
 {raw_text}
@@ -87,6 +133,12 @@ st.set_page_config(page_title="LeadGen AI Agent", page_icon="🤖")
 st.title(TEXTS["title"])
 st.caption(TEXTS["caption"])
 
+icp = load_icp()
+
+st.info(
+    f"Активний ICP: {icp['name']} (v{icp['version']})"
+)
+
 raw_text = st.text_area(
     TEXTS["input_label"],
     height=350,
@@ -99,7 +151,7 @@ if st.button(TEXTS["button"]):
     else:
         try:
             with st.spinner(TEXTS["spinner"]):
-                extracted_data = extract_company_data(raw_text)
+                extracted_data = extract_company_data(raw_text, icp)
 
             st.subheader(TEXTS["result_header"])
             show_result(extracted_data)

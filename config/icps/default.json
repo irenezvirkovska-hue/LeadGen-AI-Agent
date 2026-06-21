@@ -1,0 +1,152 @@
+{
+  "name": "Twincore Outstaff / Dedicated Engineers ICP",
+  "version": "1.0",
+  "type": "base_icp",
+  "summary": "Mid-size product or platform company in the US or selected high-value markets with an in-house engineering team, scaling or modernizing a complex .NET-based system, lacking internal capacity and looking for vetted, enterprise-level engineers to extend their core team via long-term outstaffing.",
+  "company_size": {
+    "sweet_spot": "50-500 employees",
+    "acceptable_range": "20-1000 employees",
+    "condition_for_acceptable_range": "Acceptable if the company has a stable product and budget"
+  },
+  "fit_geography": {
+    "priority_1": [
+      "United States"
+    ],
+    "allowed_countries": [
+      "Canada",
+      "United Kingdom",
+      "Germany",
+      "Netherlands",
+      "Belgium",
+      "Luxembourg",
+      "Switzerland",
+      "Austria",
+      "Sweden",
+      "Norway",
+      "Denmark",
+      "Finland",
+      "Ireland",
+      "United Arab Emirates",
+      "Saudi Arabia",
+      "Israel",
+      "Australia",
+      "Japan"
+    ]
+  },
+  "not_fit_geography": [
+    "Any country not listed in allowed_countries",
+    "Core engineering in India",
+    "Decision makers in India",
+    "India-first delivery model"
+  ],
+  "fit_company_types": [
+    "Product company",
+    "Platform company",
+    "B2B SaaS",
+    "Enterprise platform",
+    "Internal business system company",
+    "Tech-enabled business where IT is core",
+    "Scale-up",
+    "Growth-stage company",
+    "Mid-market enterprise"
+  ],
+  "fit_company_model": [
+    "Has an in-house engineering team",
+    "Lacks engineering capacity or expertise",
+    "Does not want to fully outsource development",
+    "Looks for extension of the core engineering team"
+  ],
+  "fit_company_stage": [
+    "Actively scaling",
+    "Launching new modules or products",
+    "Going through digital transformation",
+    "Migrating from legacy to modern stack",
+    "Growing faster than they can hire in-house"
+  ],
+  "not_fit_company_stage": [
+    "Pre-seed",
+    "Idea-only startup",
+    "Startup without stable budget",
+    "Company with only 1-2 developers"
+  ],
+  "critical_tech_profile": {
+    "relevant_stack": [
+      ".NET",
+      "ASP.NET Core",
+      "Backend-heavy systems",
+      "Microservices",
+      "AWS",
+      "Azure",
+      "SQL-heavy systems"
+    ],
+    "system_types": [
+      "Enterprise internal systems",
+      "CRM",
+      "ERP",
+      "Logistics platforms",
+      "FinTech systems",
+      "Banking systems",
+      "Trading platforms",
+      "IoT platforms",
+      "High-load SaaS"
+    ]
+  },
+  "fit_roles": {
+    "primary_roles": [
+      ".NET Developer",
+      "Mid .NET Developer",
+      "Senior .NET Developer",
+      "Backend Engineer",
+      "Full-stack Developer",
+      ".NET + React Developer",
+      ".NET + Angular Developer",
+      "Cloud Engineer",
+      "DevOps Engineer"
+    ],
+    "valuable_roles": [
+      "Architect",
+      "Tech Lead",
+      "Engineer with architectural thinking",
+      "Engineer experienced in legacy modernization"
+    ]
+  },
+  "pain_points": [
+    "Cannot close engineering vacancies quickly",
+    "Tired of recruitment",
+    "Growing backlog",
+    "Business deadlines",
+    "SLA pressure",
+    "Fear of hiring weak developers",
+    "Does not want to lose control over the codebase"
+  ],
+  "core_value_message": "They need vetted, enterprise-ready engineers, not cheap developers.",
+  "decision_makers": {
+    "primary": [
+      "CTO",
+      "VP Engineering",
+      "Head of Engineering",
+      "Engineering Manager"
+    ],
+    "secondary": [
+      "CEO",
+      "Head of Product",
+      "Tech Lead"
+    ]
+  },
+  "fit_budget_mindset": [
+    "Ready to pay for quality",
+    "Looks at TCO, not only hourly rate",
+    "Plans cooperation for 3-12+ months"
+  ],
+  "not_fit_budget_mindset": [
+    "Looks for cheap and urgent delivery",
+    "Compares only hourly rates",
+    "Already deeply dependent on Indian offshore"
+  ],
+  "hard_not_fit": [
+    "Recruitment agency",
+    "Staffing agency",
+    "Non-profit organization",
+    "Educational institution"
+  ]
+}
