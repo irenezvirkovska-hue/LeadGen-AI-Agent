@@ -1,4 +1,5 @@
 import gspread
+from datetime import datetime
 from google.oauth2.service_account import Credentials
 
 SCOPES = [
@@ -36,3 +37,35 @@ def test_connection():
         "good_fit_title": good_fit_sheet.title,
         "not_fit_title": not_fit_sheet.title,
     }
+
+def append_company_result(data: dict):
+
+    spreadsheet = get_spreadsheet()
+
+    target_sheet = data.get("target_sheet", "Not Fit")
+
+    if target_sheet not in ["Good Fit", "Not Fit"]:
+
+        target_sheet = "Not Fit"
+
+    worksheet = spreadsheet.worksheet(target_sheet)
+
+    row = [
+
+        datetime.now().strftime("%Y-%m-%d %H:%M"),
+
+        data.get("company_name") or "",
+
+        data.get("website") or "",
+
+        data.get("linkedin") or "",
+
+        data.get("company_size") or "",
+
+        data.get("job_title") or "",
+
+    ]
+
+    worksheet.append_row(row)
+
+    return target_sheet

@@ -5,6 +5,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from services.google_sheets import append_company_result
 
 
 load_dotenv()
@@ -155,6 +156,8 @@ if st.button(TEXTS["button"]):
 
             st.subheader(TEXTS["result_header"])
             show_result(extracted_data)
+            saved_sheet = append_company_result(extracted_data)
+            st.success(f"Збережено у вкладку Google Sheets: {saved_sheet}")
 
             with st.expander(TEXTS["raw_json"]):
                 st.json(extracted_data)
