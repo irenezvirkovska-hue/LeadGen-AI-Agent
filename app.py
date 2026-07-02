@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
 from services.google_sheets import append_company_result
+from services.google_docs import read_google_doc_text
 
 
 load_dotenv()
@@ -47,12 +48,16 @@ def load_icp():
     with open(icp_path, "r", encoding="utf-8") as file:
         return json.load(file)
     
+def load_icp_text():
+    doc_id = "147cjnGlhGr1vbOsTPHYGJq427jd4HBU8cCQUSwRmOdQ"
+    return read_google_doc_text(doc_id)
+    
 
 def extract_company_data(raw_text: str, icp: dict) -> dict:
     prompt = f"""
     ICP Configuration:
 
-{json.dumps(icp, indent=2)}
+{icp}
 
 Analyze the company according to this ICP.
 Your task is not only to extract information.
@@ -134,11 +139,10 @@ st.set_page_config(page_title="LeadGen AI Agent", page_icon="🤖")
 st.title(TEXTS["title"])
 st.caption(TEXTS["caption"])
 
-icp = load_icp()
+icp = load_icp_text()
 
-st.info(
-    f"Активний ICP: {icp['name']} (v{icp['version']})"
-)
+st.info("Активний ICP: Google Doc")
+
 
 raw_text = st.text_area(
     TEXTS["input_label"],
@@ -147,24 +151,30 @@ raw_text = st.text_area(
 )
 
 if st.button(TEXTS["button"]):
+
+    print("1. Натиснули Analyze")
+
     if not raw_text.strip():
+
         st.warning(TEXTS["warning"])
+
     else:
+
+        print("2. Текст є, починаємо")
+
         try:
+
             with st.spinner(TEXTS["spinner"]):
+
+                print("3. Перед OpenAI")
+
                 extracted_data = extract_company_data(raw_text, icp)
 
-            st.subheader(TEXTS["result_header"])
-            show_result(extracted_data)
-            saved_sheet = append_company_result(extracted_data)
-            st.success(f"Збережено у вкладку Google Sheets: {saved_sheet}")
+                print("4. OpenAI відповів")
+                st.subheader(TEXTS["result_header"])
+                show_result(extracted_data)
+                saved_sheet = append_company_result(extracted_data)
+                st.success(f"Збережено у вкладку Google Sheets: {saved_sheet}")
 
-            with st.expander(TEXTS["raw_json"]):
-                st.json(extracted_data)
-
-        except json.JSONDecodeError:
-            st.error("OpenAI returned invalid JSON. / OpenAI повернув некоректний JSON.")
-            st.write("Raw response could not be parsed. / Сиру відповідь не вдалося розпарсити.")
-        except Exception as error:
-            st.error(TEXTS["error_header"])
-            st.write(str(error))
+                with st.expander(TEXTS["raw_json"]):
+                    st.json(extracted_data)
