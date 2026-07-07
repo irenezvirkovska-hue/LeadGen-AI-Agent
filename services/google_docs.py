@@ -1,6 +1,3 @@
-import json
-import os
-
 import streamlit as st
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
@@ -15,9 +12,8 @@ SERVICE_ACCOUNT_FILE = "config/credentials/google-service-account.json"
 
 def get_credentials():
     if "google_service_account" in st.secrets:
-        service_account_info = dict(st.secrets["google_service_account"])
         return Credentials.from_service_account_info(
-            service_account_info,
+            dict(st.secrets["google_service_account"]),
             scopes=SCOPES,
         )
 

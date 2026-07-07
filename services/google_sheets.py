@@ -17,9 +17,8 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1Rl56Y8m0pbrz7LjmxWcHq
 
 def get_credentials():
     if "google_service_account" in st.secrets:
-        service_account_info = dict(st.secrets["google_service_account"])
         return Credentials.from_service_account_info(
-            service_account_info,
+            dict(st.secrets["google_service_account"]),
             scopes=SCOPES,
         )
 
