@@ -1,11 +1,13 @@
 import base64
 import json
 import os
+from io import BytesIO
 from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from PIL import Image, ImageOps
 from services.google_docs import read_google_doc_text
 from services.google_sheets import append_company_result
 
@@ -15,6 +17,39 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 ICP_CATALOG_PATH = Path("config/icps/catalog.json")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
+MAX_IMAGE_DIMENSION = 1600
+
+LEAD_QUALIFICATION_FORMAT = {
+    "type": "json_schema",
+    "name": "lead_qualification",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "company_name": {"type": ["string", "null"]},
+            "website": {"type": ["string", "null"]},
+            "linkedin": {"type": ["string", "null"]},
+            "company_size": {"type": ["string", "null"]},
+            "job_title": {"type": ["string", "null"]},
+            "icp_match": {
+                "type": "string",
+                "enum": ["Yes", "No", "Unknown"],
+            },
+            "short_reason_ua": {"type": "string"},
+        },
+        "required": [
+            "company_name",
+            "website",
+            "linkedin",
+            "company_size",
+            "job_title",
+            "icp_match",
+            "short_reason_ua",
+        ],
+        "additionalProperties": False,
+    },
+}
 
 TEXTS = {
     "title": "LeadGen AI Agent / AI-агент для лідогенерації",
@@ -83,9 +118,17 @@ def load_icp_text(document_id: str) -> str:
 
 
 def image_to_data_url(uploaded_file) -> str:
-    file_bytes = uploaded_file.getvalue()
-    encoded = base64.b64encode(file_bytes).decode("utf-8")
-    return f"data:{uploaded_file.type};base64,{encoded}"
+    image = Image.open(BytesIO(uploaded_file.getvalue()))
+    image = ImageOps.exif_transpose(image).convert("RGB")
+    image.thumbnail(
+        (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION),
+        Image.Resampling.LANCZOS,
+    )
+
+    output = BytesIO()
+    image.save(output, format="JPEG", quality=90, optimize=True)
+    encoded = base64.b64encode(output.getvalue()).decode("utf-8")
+    return f"data:image/jpeg;base64,{encoded}"
 
 
 def extract_usage_stats(response) -> dict:
@@ -93,6 +136,7 @@ def extract_usage_stats(response) -> dict:
     input_details = getattr(usage, "input_tokens_details", None)
 
     return {
+        "model": getattr(response, "model", OPENAI_MODEL),
         "input_tokens": getattr(usage, "input_tokens", 0),
         "output_tokens": getattr(usage, "output_tokens", 0),
         "cached_tokens": getattr(input_details, "cached_tokens", 0),
@@ -103,82 +147,22 @@ def extract_usage_stats(response) -> dict:
 def extract_company_data(
     raw_text: str,
     icp_text: str,
+    icp_key: str,
     image_files=None,
 ) -> tuple[dict, dict]:
     prompt = f"""
-ICP Configuration:
+Extract company data and qualify it against the ICP below.
+Use only facts supported by the text or screenshots; use null when a field is absent.
+Combine evidence from all inputs without inventing values.
+Keep the company website separate from its LinkedIn URL.
+Inspect visible Website fields and the main LinkedIn About/Overview content carefully.
+Set icp_match from the ICP criteria and write one concise Ukrainian sentence in
+short_reason_ua explaining the verdict.
 
+ICP:
 {icp_text}
 
-Analyze the company according to this ICP.
-Your task is not only to extract information.
-
-Use the ICP configuration to understand:
-- what company types are considered a fit;
-- what technologies matter;
-- what countries are allowed;
-- what company sizes are preferred;
-- who the target decision makers are;
-- what pain points are relevant.
-
-Use this knowledge when extracting data.
-Do not invent information.
-Only extract facts supported by the provided text or screenshots.
-Explain the verdict in natural Ukrainian, using only facts present in the vacancy/company text, screenshots, or directly implied by the ICP.
-Never invent information that is not supported by the provided text or screenshots.
-
-You are a data extraction and ICP qualification assistant.
-
-Extract the following fields from the provided job/company text or screenshots:
-
-1. company_name
-2. website
-3. linkedin
-4. company_size
-5. job_title
-6. icp_match
-7. target_sheet
-8. short_reason_ua
-
-Rules:
-- Return ONLY valid JSON.
-- Do not add explanations outside JSON.
-- Do not add markdown.
-- If a value is not present, use null.
-- Do not invent website, LinkedIn, or company size.
-
-- Carefully analyze both the pasted text and ALL uploaded screenshots.
-- Treat screenshots as complementary evidence.
-- If different screenshots contain different fields, combine the information into one final result.
-- When analyzing a LinkedIn company About screenshot, inspect the main About/Overview block carefully.
-- If any screenshot shows a field named "Website", extract the URL directly under that label into website.
-- If any screenshot shows "Website" followed by a URL, this URL must be extracted even if it is not present in the pasted text.
-- If a URL is visibly shown under labels like Website, Company website, or About, extract it into website.
-- Do not confuse LinkedIn URL with company website: LinkedIn company page goes to linkedin, company website goes to website.
-- If a LinkedIn company URL is visible in the pasted text or screenshot, extract it into linkedin.
-
-- You may infer company_name and job_title only if they are clearly mentioned in the text or screenshots.
-- If company_name is mentioned in company footer, privacy notice, job board text, screenshot, or repeated company description, extract it.
-- Do not say "can be found by searching".
-
-- The JSON keys must be exactly:
-  company_name, website, linkedin, company_size, job_title, icp_match, target_sheet, short_reason_ua
-
-For icp_match, return only one of:
-- "Yes"
-- "No"
-- "Unknown"
-
-For target_sheet, return only one of:
-- "Good Fit"
-- "Not Fit"
-
-If icp_match is "Yes", target_sheet must be "Good Fit".
-If icp_match is "No" or "Unknown", target_sheet must be "Not Fit".
-
-For short_reason_ua, write one short sentence in Ukrainian explaining the verdict.
-
-Text:
+Company or vacancy text:
 {raw_text}
 """
 
@@ -190,17 +174,25 @@ Text:
             content_parts.append({"type": "input_image", "image_url": image_url})
 
     response = client.responses.create(
-        model="gpt-5.5",
+        model=OPENAI_MODEL,
         input=[  # type: ignore
             {
                 "role": "user",
                 "content": content_parts,
             }  # type: ignore
         ],
+        max_output_tokens=500,
+        prompt_cache_key=f"leadgen:{icp_key}:v1",
+        reasoning={"effort": "low"},
+        text={"format": LEAD_QUALIFICATION_FORMAT},
     )
 
     content = response.output_text.strip()
-    return json.loads(content), extract_usage_stats(response)
+    extracted_data = json.loads(content)
+    extracted_data["target_sheet"] = (
+        "Good Fit" if extracted_data["icp_match"] == "Yes" else "Not Fit"
+    )
+    return extracted_data, extract_usage_stats(response)
 
 
 def show_result(data: dict) -> None:
@@ -230,6 +222,7 @@ def show_saved_result() -> None:
 
     if st.session_state.last_usage:
         st.subheader("Використання токенів")
+        st.caption(f"Модель: {st.session_state.last_usage.get('model', '—')}")
         input_column, output_column, cached_column, total_column = st.columns(4)
         input_column.metric(
             "Вхідні",
@@ -320,6 +313,14 @@ uploaded_images = st.file_uploader(
     accept_multiple_files=True,
     key=f"uploaded_images_{st.session_state.uploader_key}",
 )
+st.caption(
+    "Для меншої вартості обрізай порожні поля та завантажуй лише 1–2 потрібні скриншоти."
+)
+
+if len(uploaded_images) > 3:
+    st.warning(
+        "Завантажено понад 3 скриншоти. Це суттєво збільшує кількість токенів."
+    )
 
 if st.button(TEXTS["button"]):
     if not raw_text.strip() and not uploaded_images:
@@ -332,6 +333,7 @@ if st.button(TEXTS["button"]):
                 extracted_data, usage_stats = extract_company_data(
                     raw_text=raw_text,
                     icp_text=icp_text,
+                    icp_key=selected_icp["key"],
                     image_files=uploaded_images,
                 )
 
