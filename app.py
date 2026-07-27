@@ -19,6 +19,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 ICP_CATALOG_PATH = Path("config/icps/catalog.json")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 MAX_IMAGE_DIMENSION = 1600
+MAX_OUTPUT_TOKENS = 1200
 
 LEAD_QUALIFICATION_FORMAT = {
     "type": "json_schema",
@@ -181,13 +182,23 @@ Company or vacancy text:
                 "content": content_parts,
             }  # type: ignore
         ],
-        max_output_tokens=500,
+        max_output_tokens=MAX_OUTPUT_TOKENS,
         prompt_cache_key=f"leadgen:{icp_key}:v1",
         reasoning={"effort": "low"},
         text={"format": LEAD_QUALIFICATION_FORMAT},
     )
 
     content = response.output_text.strip()
+    if not content:
+        incomplete_details = getattr(response, "incomplete_details", None)
+        reason = getattr(incomplete_details, "reason", None)
+        if reason == "max_output_tokens":
+            raise RuntimeError(
+                "OpenAI не встиг сформувати відповідь у межах ліміту токенів. "
+                "Спробуйте ще раз."
+            )
+        raise RuntimeError("OpenAI не повернув текстову відповідь. Спробуйте ще раз.")
+
     extracted_data = json.loads(content)
     extracted_data["target_sheet"] = (
         "Good Fit" if extracted_data["icp_match"] == "Yes" else "Not Fit"
@@ -351,7 +362,10 @@ if st.button(TEXTS["button"]):
             st.rerun()
 
         except json.JSONDecodeError:
-            st.error("OpenAI повернув некоректний JSON.")
+            st.error(
+                "Відповідь OpenAI обірвалася або мала некоректний формат. "
+                "Спробуйте ще раз."
+            )
         except Exception as error:
             st.error(TEXTS["error_header"])
             st.write(str(error))
