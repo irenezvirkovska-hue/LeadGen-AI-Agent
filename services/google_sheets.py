@@ -12,7 +12,16 @@ SCOPES = [
 
 SERVICE_ACCOUNT_FILE = "config/credentials/google-service-account.json"
 
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1Rl56Y8m0pbrz7LjmxWcHq_ph7Bi9fPvOornXNFXpD58/edit?gid=0#gid=0"
+RESULT_HEADERS = [
+    "Дата і час",
+    "Назва компанії",
+    "Website",
+    "LinkedIn",
+    "Розмір компанії",
+    "Вакансія",
+    "ICP Match",
+    "Причина",
+]
 
 
 def get_credentials():
@@ -33,13 +42,13 @@ def get_google_client():
     return gspread.authorize(credentials)
 
 
-def get_spreadsheet():
+def get_spreadsheet(spreadsheet_id: str):
     client = get_google_client()
-    return client.open_by_url(SPREADSHEET_URL)
+    return client.open_by_key(spreadsheet_id)
 
 
-def test_connection():
-    spreadsheet = get_spreadsheet()
+def test_connection(spreadsheet_id: str):
+    spreadsheet = get_spreadsheet(spreadsheet_id)
 
     good_fit_sheet = spreadsheet.worksheet("Good Fit")
     not_fit_sheet = spreadsheet.worksheet("Not Fit")
@@ -51,8 +60,13 @@ def test_connection():
     }
 
 
-def append_company_result(data: dict):
-    spreadsheet = get_spreadsheet()
+def ensure_headers(worksheet) -> None:
+    if not worksheet.row_values(1):
+        worksheet.append_row(RESULT_HEADERS)
+
+
+def append_company_result(data: dict, spreadsheet_id: str):
+    spreadsheet = get_spreadsheet(spreadsheet_id)
 
     target_sheet = data.get("target_sheet", "Not Fit")
 
@@ -60,6 +74,7 @@ def append_company_result(data: dict):
         target_sheet = "Not Fit"
 
     worksheet = spreadsheet.worksheet(target_sheet)
+    ensure_headers(worksheet)
 
     row = [
         datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -68,6 +83,8 @@ def append_company_result(data: dict):
         data.get("linkedin") or "",
         data.get("company_size") or "",
         data.get("job_title") or "",
+        data.get("icp_match") or "",
+        data.get("short_reason_ua") or "",
     ]
 
     worksheet.append_row(row)

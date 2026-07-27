@@ -54,7 +54,7 @@ def load_icp_catalog() -> dict:
     if not items:
         raise ValueError("Список ICP порожній.")
 
-    required_fields = {"key", "label", "document_id"}
+    required_fields = {"key", "label", "document_id", "spreadsheet_id"}
     for item in items:
         if not required_fields.issubset(item):
             raise ValueError("Некоректна конфігурація ICP.")
@@ -200,7 +200,8 @@ def show_saved_result() -> None:
 
     if st.session_state.last_saved_sheet:
         st.success(
-            f"Збережено у вкладку Google Sheets: {st.session_state.last_saved_sheet}"
+            f"Збережено в таблицю для {st.session_state.last_icp_label}, "
+            f"вкладка: {st.session_state.last_saved_sheet}"
         )
 
     with st.expander(TEXTS["raw_json"]):
@@ -286,7 +287,10 @@ if st.button(TEXTS["button"]):
                     image_files=uploaded_images,
                 )
 
-            saved_sheet = append_company_result(extracted_data)
+            saved_sheet = append_company_result(
+                extracted_data,
+                spreadsheet_id=selected_icp["spreadsheet_id"],
+            )
 
             st.session_state.last_result = extracted_data
             st.session_state.last_saved_sheet = saved_sheet
