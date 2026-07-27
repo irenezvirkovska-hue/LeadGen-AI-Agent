@@ -7,7 +7,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
-from PIL import Image, ImageOps
+from PIL import Image, ImageFilter, ImageOps
 from services.google_docs import read_google_doc_text
 from services.google_sheets import append_company_result
 
@@ -20,6 +20,8 @@ ICP_CATALOG_PATH = Path("config/icps/catalog.json")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 MAX_IMAGE_DIMENSION = 1600
 MAX_OUTPUT_TOKENS = 1200
+AUTO_CROP_MIN_WIDTH = 1200
+AUTO_CROP_MIN_HEIGHT = 800
 
 LEAD_QUALIFICATION_FORMAT = {
     "type": "json_schema",
@@ -118,9 +120,64 @@ def load_icp_text(document_id: str) -> str:
     return read_google_doc_text(document_id)
 
 
+def auto_crop_uniform_side_margins(image: Image.Image) -> Image.Image:
+    """Crop large low-detail side margins while keeping the full image height."""
+    if (
+        image.width < AUTO_CROP_MIN_WIDTH
+        or image.height < AUTO_CROP_MIN_HEIGHT
+    ):
+        return image
+
+    preview = image.copy()
+    preview.thumbnail((1000, 1000), Image.Resampling.BILINEAR)
+
+    analysis_band = preview.crop(
+        (
+            0,
+            round(preview.height * 0.18),
+            preview.width,
+            round(preview.height * 0.85),
+        )
+    )
+    edges = analysis_band.convert("L").filter(ImageFilter.FIND_EDGES)
+    edges = edges.crop((2, 2, edges.width - 2, edges.height - 2))
+    strong_edges = edges.point(lambda value: 255 if value >= 24 else 0)
+    column_density = strong_edges.resize(
+        (strong_edges.width, 1),
+        Image.Resampling.BOX,
+    )
+
+    active_columns = [
+        index + 2
+        for index, density in enumerate(column_density.getdata())
+        if density >= 3
+    ]
+    if not active_columns:
+        return image
+
+    left_preview = active_columns[0]
+    right_preview = active_columns[-1] + 1
+    content_width = right_preview - left_preview
+
+    # Crop only when both the detected content and the saving are substantial.
+    if (
+        content_width < preview.width * 0.15
+        or content_width > preview.width * 0.88
+    ):
+        return image
+
+    scale = image.width / preview.width
+    padding = max(24, round(content_width * scale * 0.06))
+    left = max(0, round(left_preview * scale) - padding)
+    right = min(image.width, round(right_preview * scale) + padding)
+
+    return image.crop((left, 0, right, image.height))
+
+
 def image_to_data_url(uploaded_file) -> str:
     image = Image.open(BytesIO(uploaded_file.getvalue()))
     image = ImageOps.exif_transpose(image).convert("RGB")
+    image = auto_crop_uniform_side_margins(image)
     image.thumbnail(
         (MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION),
         Image.Resampling.LANCZOS,
@@ -325,7 +382,8 @@ uploaded_images = st.file_uploader(
     key=f"uploaded_images_{st.session_state.uploader_key}",
 )
 st.caption(
-    "Для меншої вартості обрізай порожні поля та завантажуй лише 1–2 потрібні скриншоти."
+    "Порожні бокові поля обрізаються автоматично. "
+    "Для меншої вартості завантажуй лише 1–2 потрібні скриншоти."
 )
 
 if len(uploaded_images) > 3:
