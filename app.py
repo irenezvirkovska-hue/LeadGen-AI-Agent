@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+from pathlib import Path
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -13,11 +14,11 @@ load_dotenv()
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-ICP_DOC_ID = "147cjnGlhGr1vbOsTPHYGJq427jd4HBU8cCQUSwRmOdQ"
+ICP_CATALOG_PATH = Path("config/icps/catalog.json")
 
 TEXTS = {
     "title": "LeadGen AI Agent / AI-агент для лідогенерації",
-    "caption": "ICP from Google Doc / ICP з Google Docs",
+    "caption": "Select ICP from Google Docs / Обери ICP із Google Docs",
     "input_label": "Paste job/company text here / Встав текст вакансії або компанії сюди",
     "placeholder": (
         "Paste company website info, LinkedIn info, company size, job title, and job description here...\n\n"
@@ -44,9 +45,33 @@ FIELD_LABELS_UA = {
 }
 
 
+@st.cache_data
+def load_icp_catalog() -> dict:
+    with ICP_CATALOG_PATH.open("r", encoding="utf-8") as file:
+        catalog = json.load(file)
+
+    items = catalog.get("items", [])
+    if not items:
+        raise ValueError("Список ICP порожній.")
+
+    required_fields = {"key", "label", "document_id"}
+    for item in items:
+        if not required_fields.issubset(item):
+            raise ValueError("Некоректна конфігурація ICP.")
+
+    keys = [item["key"] for item in items]
+    if len(keys) != len(set(keys)):
+        raise ValueError("Ключі ICP мають бути унікальними.")
+
+    if catalog.get("default") not in keys:
+        raise ValueError("ICP за замовчуванням відсутній у списку.")
+
+    return catalog
+
+
 @st.cache_data(ttl=600)
-def load_icp_text() -> str:
-    return read_google_doc_text(ICP_DOC_ID)
+def load_icp_text(document_id: str) -> str:
+    return read_google_doc_text(document_id)
 
 
 def image_to_data_url(uploaded_file) -> str:
@@ -167,6 +192,10 @@ def show_saved_result() -> None:
         return
 
     st.subheader(TEXTS["result_header"])
+
+    if st.session_state.last_icp_label:
+        st.info(f"Аналіз виконано за ICP: {st.session_state.last_icp_label}")
+
     show_result(st.session_state.last_result)
 
     if st.session_state.last_saved_sheet:
@@ -180,6 +209,7 @@ def show_saved_result() -> None:
     if st.button(TEXTS["new_company_button"]):
         st.session_state.last_result = None
         st.session_state.last_saved_sheet = None
+        st.session_state.last_icp_label = None
         st.session_state.text_area_key += 1
         st.session_state.uploader_key += 1
         st.rerun()
@@ -193,6 +223,9 @@ if "last_result" not in st.session_state:
 if "last_saved_sheet" not in st.session_state:
     st.session_state.last_saved_sheet = None
 
+if "last_icp_label" not in st.session_state:
+    st.session_state.last_icp_label = None
+
 if "text_area_key" not in st.session_state:
     st.session_state.text_area_key = 0
 
@@ -203,11 +236,26 @@ st.title(TEXTS["title"])
 st.caption(TEXTS["caption"])
 
 try:
-    icp_text = load_icp_text()
-    st.info("Активний ICP: Google Doc")
+    icp_catalog = load_icp_catalog()
+    icp_items = icp_catalog["items"]
+    icp_by_key = {item["key"]: item for item in icp_items}
+    icp_keys = [item["key"] for item in icp_items]
+    default_index = icp_keys.index(icp_catalog["default"])
+
+    selected_icp_key = st.selectbox(
+        "Оберіть ICP / Select ICP",
+        options=icp_keys,
+        index=default_index,
+        format_func=lambda key: icp_by_key[key]["label"],
+        key="selected_icp_key",
+    )
+    selected_icp = icp_by_key[selected_icp_key]
+    icp_text = load_icp_text(selected_icp["document_id"])
+    st.info(f"Активний ICP: {selected_icp['label']}")
 except Exception as error:
+    selected_icp = None
     icp_text = ""
-    st.error("Не вдалося прочитати ICP з Google Doc.")
+    st.error("Не вдалося завантажити вибраний ICP.")
     st.write(str(error))
 
 raw_text = st.text_area(
@@ -242,6 +290,7 @@ if st.button(TEXTS["button"]):
 
             st.session_state.last_result = extracted_data
             st.session_state.last_saved_sheet = saved_sheet
+            st.session_state.last_icp_label = selected_icp["label"]
 
             st.rerun()
 

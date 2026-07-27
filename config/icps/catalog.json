@@ -1,0 +1,20 @@
+{
+  "default": "dotnet-hiring",
+  "items": [
+    {
+      "key": "dotnet-hiring",
+      "label": "ICP - .NET Hiring",
+      "document_id": "1MA9-_vZfUzeNxU4-lCFD6IVtiNwZqoOwpq99eLRVQQk"
+    },
+    {
+      "key": "angular-hiring",
+      "label": "ICP - Angular Hiring",
+      "document_id": "19EWIZOnlfIbfiTMQxF6DKsM9HpRS0bG3WMdTRDHkkNA"
+    },
+    {
+      "key": "react-hiring",
+      "label": "ICP - React Hiring",
+      "document_id": "1YWqPEW0cuNKH_mW1XQeiChBtpEb4NUccvkk1bgu5xbI"
+    }
+  ]
+}
