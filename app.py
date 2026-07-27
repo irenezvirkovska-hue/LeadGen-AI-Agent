@@ -88,7 +88,23 @@ def image_to_data_url(uploaded_file) -> str:
     return f"data:{uploaded_file.type};base64,{encoded}"
 
 
-def extract_company_data(raw_text: str, icp_text: str, image_files=None) -> dict:
+def extract_usage_stats(response) -> dict:
+    usage = response.usage
+    input_details = getattr(usage, "input_tokens_details", None)
+
+    return {
+        "input_tokens": getattr(usage, "input_tokens", 0),
+        "output_tokens": getattr(usage, "output_tokens", 0),
+        "cached_tokens": getattr(input_details, "cached_tokens", 0),
+        "total_tokens": getattr(usage, "total_tokens", 0),
+    }
+
+
+def extract_company_data(
+    raw_text: str,
+    icp_text: str,
+    image_files=None,
+) -> tuple[dict, dict]:
     prompt = f"""
 ICP Configuration:
 
@@ -184,7 +200,7 @@ Text:
     )
 
     content = response.output_text.strip()
-    return json.loads(content)
+    return json.loads(content), extract_usage_stats(response)
 
 
 def show_result(data: dict) -> None:
@@ -212,6 +228,26 @@ def show_saved_result() -> None:
             f"вкладка: {st.session_state.last_saved_sheet}"
         )
 
+    if st.session_state.last_usage:
+        st.subheader("Використання токенів")
+        input_column, output_column, cached_column, total_column = st.columns(4)
+        input_column.metric(
+            "Вхідні",
+            st.session_state.last_usage["input_tokens"],
+        )
+        output_column.metric(
+            "Вихідні",
+            st.session_state.last_usage["output_tokens"],
+        )
+        cached_column.metric(
+            "З кешу",
+            st.session_state.last_usage["cached_tokens"],
+        )
+        total_column.metric(
+            "Усього",
+            st.session_state.last_usage["total_tokens"],
+        )
+
     with st.expander(TEXTS["raw_json"]):
         st.json(st.session_state.last_result)
 
@@ -219,6 +255,7 @@ def show_saved_result() -> None:
         st.session_state.last_result = None
         st.session_state.last_saved_sheet = None
         st.session_state.last_icp_label = None
+        st.session_state.last_usage = None
         st.session_state.text_area_key += 1
         st.session_state.uploader_key += 1
         st.rerun()
@@ -234,6 +271,9 @@ if "last_saved_sheet" not in st.session_state:
 
 if "last_icp_label" not in st.session_state:
     st.session_state.last_icp_label = None
+
+if "last_usage" not in st.session_state:
+    st.session_state.last_usage = None
 
 if "text_area_key" not in st.session_state:
     st.session_state.text_area_key = 0
@@ -289,7 +329,7 @@ if st.button(TEXTS["button"]):
     else:
         try:
             with st.spinner(TEXTS["spinner"]):
-                extracted_data = extract_company_data(
+                extracted_data, usage_stats = extract_company_data(
                     raw_text=raw_text,
                     icp_text=icp_text,
                     image_files=uploaded_images,
@@ -304,6 +344,7 @@ if st.button(TEXTS["button"]):
             st.session_state.last_result = extracted_data
             st.session_state.last_saved_sheet = saved_sheet
             st.session_state.last_icp_label = selected_icp["label"]
+            st.session_state.last_usage = usage_stats
 
             st.rerun()
 
