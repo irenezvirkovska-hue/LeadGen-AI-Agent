@@ -54,10 +54,18 @@ def load_icp_catalog() -> dict:
     if not items:
         raise ValueError("Список ICP порожній.")
 
-    required_fields = {"key", "label", "document_id", "spreadsheet_id"}
+    required_fields = {
+        "key",
+        "label",
+        "document_id",
+        "spreadsheet_id",
+        "result_schema",
+    }
     for item in items:
         if not required_fields.issubset(item):
             raise ValueError("Некоректна конфігурація ICP.")
+        if item["result_schema"] not in {"legacy", "extended"}:
+            raise ValueError("Невідомий формат таблиці результатів.")
 
     keys = [item["key"] for item in items]
     if len(keys) != len(set(keys)):
@@ -290,6 +298,7 @@ if st.button(TEXTS["button"]):
             saved_sheet = append_company_result(
                 extracted_data,
                 spreadsheet_id=selected_icp["spreadsheet_id"],
+                result_schema=selected_icp["result_schema"],
             )
 
             st.session_state.last_result = extracted_data

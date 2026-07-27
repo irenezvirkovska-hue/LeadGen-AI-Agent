@@ -5,19 +5,22 @@
       "key": "dotnet-hiring",
       "label": "ICP - .NET Hiring",
       "document_id": "1MA9-_vZfUzeNxU4-lCFD6IVtiNwZqoOwpq99eLRVQQk",
-      "spreadsheet_id": "1Rl56Y8m0pbrz7LjmxWcHq_ph7Bi9fPvOornXNFXpD58"
+      "spreadsheet_id": "1Rl56Y8m0pbrz7LjmxWcHq_ph7Bi9fPvOornXNFXpD58",
+      "result_schema": "legacy"
     },
     {
       "key": "angular-hiring",
       "label": "ICP - Angular Hiring",
       "document_id": "19EWIZOnlfIbfiTMQxF6DKsM9HpRS0bG3WMdTRDHkkNA",
-      "spreadsheet_id": "1-IOuQJfg30zFEM6l1JOAPi71tILlQ7Bexss_ROVcQXc"
+      "spreadsheet_id": "1-IOuQJfg30zFEM6l1JOAPi71tILlQ7Bexss_ROVcQXc",
+      "result_schema": "extended"
     },
     {
       "key": "react-hiring",
       "label": "ICP - React Hiring",
       "document_id": "1YWqPEW0cuNKH_mW1XQeiChBtpEb4NUccvkk1bgu5xbI",
-      "spreadsheet_id": "1_6Kvu0cZeSzOZCA9gMm_E4LIKZdTG5_GAknZZmC301A"
+      "spreadsheet_id": "1_6Kvu0cZeSzOZCA9gMm_E4LIKZdTG5_GAknZZmC301A",
+      "result_schema": "extended"
     }
   ]
 }

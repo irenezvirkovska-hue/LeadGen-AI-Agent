@@ -65,7 +65,11 @@ def ensure_headers(worksheet) -> None:
         worksheet.append_row(RESULT_HEADERS)
 
 
-def append_company_result(data: dict, spreadsheet_id: str):
+def append_company_result(
+    data: dict,
+    spreadsheet_id: str,
+    result_schema: str = "extended",
+):
     spreadsheet = get_spreadsheet(spreadsheet_id)
 
     target_sheet = data.get("target_sheet", "Not Fit")
@@ -74,7 +78,6 @@ def append_company_result(data: dict, spreadsheet_id: str):
         target_sheet = "Not Fit"
 
     worksheet = spreadsheet.worksheet(target_sheet)
-    ensure_headers(worksheet)
 
     row = [
         datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -83,9 +86,16 @@ def append_company_result(data: dict, spreadsheet_id: str):
         data.get("linkedin") or "",
         data.get("company_size") or "",
         data.get("job_title") or "",
-        data.get("icp_match") or "",
-        data.get("short_reason_ua") or "",
     ]
+
+    if result_schema == "extended":
+        ensure_headers(worksheet)
+        row.extend(
+            [
+                data.get("icp_match") or "",
+                data.get("short_reason_ua") or "",
+            ]
+        )
 
     worksheet.append_row(row)
 
