@@ -1,7 +1,6 @@
-streamlit
-openai
-python-dotenv
-gspread
-google-auth
-google-api-python-client
-Pillow
+streamlit==1.49.1
+openai==1.99.9
+python-dotenv==1.1.1
+gspread==6.2.1
+google-auth==2.40.3
+google-api-python-client==2.179.0
