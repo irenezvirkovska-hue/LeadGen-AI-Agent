@@ -54,6 +54,20 @@ flowchart LR
 | Responses can be cut off by the token limit | Explicit handling of `incomplete_details` and invalid JSON, with a clear message to the user |
 | Criteria change often | ICPs are loaded from Google Docs and cached for 10 minutes; profiles are added in `config/icps/catalog.json` |
 
+## Cutting the cost per analysis
+
+The first version sent up to 10 full-size screenshots per company and was expensive. I measured token usage in the app and optimized it in three steps:
+
+| Step | Input tokens | Cached | Cost per analysis* |
+| --- | ---: | ---: | ---: |
+| Many full-size screenshots | 46,498 | 0 | ≈ $0.013 |
+| 2–3 screenshots, resized | 6,825 | 0 | ≈ $0.003 |
+| + auto-cropping and prompt caching | 5,145 | 4,736 | **$0.0013** |
+
+**Result:** up to **89% fewer input tokens** and about **10× lower cost**. $1 now covers roughly 750 analyses. In everyday use a request takes about 5–12k input tokens, depending on the number of screenshots and whether the ICP prompt is cached.
+
+<sub>*Calculated from the token counts shown in the app and `gpt-5-mini` API prices.</sub>
+
 ## Tech stack
 
 Python · Streamlit · OpenAI Responses API (`gpt-5-mini` by default) · Pillow · Google Docs API · gspread · Google service-account auth · python-dotenv
