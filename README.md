@@ -9,6 +9,14 @@ Paste a job posting or company profile (or drop in a screenshot), pick an Ideal 
 ![OpenAI](https://img.shields.io/badge/LLM-OpenAI%20Responses%20API-412991)
 ![Google APIs](https://img.shields.io/badge/Integrations-Google%20Docs%20%7C%20Sheets-34A853)
 
+## Demo
+
+| 1. Choose an ICP, paste text, add screenshots | 2. Get a structured verdict, saved to Google Sheets |
+| --- | --- |
+| ![Input form with ICP selection, pasted text and uploaded screenshots](assets/input.png) | ![Analysis result with company details, ICP verdict, reason and token usage](assets/result.png) |
+
+*Company details in the screenshots are replaced with example values.*
+
 ## Why I built it
 
 I work as an SDR and qualify companies by hand: open the vacancy, check the company size, tech stack and location, compare everything with the ICP, then copy the data into a spreadsheet. It took about **5 minutes per company**.
@@ -60,6 +68,7 @@ LeadGen-AI-Agent/
 │   └── google_sheets.py       # Routes and appends results to Google Sheets
 ├── config/
 │   └── icps/catalog.json      # ICP profiles: Google Doc and Sheet IDs
+├── assets/                    # README screenshots
 └── requirements.txt
 ```
 
@@ -95,12 +104,6 @@ Credentials (`.env`, `config/credentials/*.json`, `.streamlit/secrets.toml`) are
 ## Limitations
 
 The agent evaluates only the evidence you give it: it does not browse websites or scrape LinkedIn. The final decision on a lead stays with a person.
-
-## Roadmap
-
-- [ ] Evaluation set: compare the agent's verdicts with 50 manually labelled companies and report accuracy
-- [ ] Unit tests for image preprocessing and result routing
-- [ ] Demo mode that runs without Google credentials
 
 ---
 
